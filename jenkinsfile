@@ -1,0 +1,46 @@
+pipeline {
+  agent any
+
+  tools {
+    nodejs "localnodejs"
+  }
+
+  environment {
+    POSTMAN_API_KEY = credentials('postman-cli-api-key')
+  }
+
+  stages {
+    stage('Checkout Code') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Postman CLI Login') {
+      steps {
+        bat 'postman login --with-api-key %POSTMAN_API_KEY%'
+      }
+    }
+
+    stage('Running Collection') {
+      steps {
+        bat '''
+          postman collection run "58240110-99620fe2-a0bb-438e-a4e1-71dfa5705144" -d "product_data.json" -g "workspace.postman_globals.json" -r cli,html
+        '''
+      }
+    }
+  }
+
+  post {
+    always {
+      publishHTML([
+        allowMissing: false,
+        alwaysLinkToLastBuild: true,
+        keepAll: true,
+        reportDir: 'postman-cli-reports',
+        reportFiles: '*.html',
+        reportName: 'Postman API Test Report'
+      ])
+    }
+  }
+}
